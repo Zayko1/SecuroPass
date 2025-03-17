@@ -6,7 +6,7 @@ import base64
 import random 
 import string
 import os
-
+import re
 
 #Génération de mots de passes 
 def generatePassword(longueur):
@@ -80,9 +80,21 @@ def decrypt(donnees_chiffrees, cle):
     donnees_dechiffrees = unpad(cipher.decrypt(ciphertext), AES.block_size)
     return donnees_dechiffrees.decode()
 
+def verifNiveauMDP(mdp):
+    if len(mdp) < 8:
+        return "Faible"
+    
+    if re.search(r"[A-Za-z]", mdp) and re.search(r"\d", mdp):
+        if len(mdp) >= 12 and re.search(r"[!@#$%^&*(),.?\":{}|<>]", mdp):
+            return "Fort"
+        return "Moyen"
+    
+    return "Faible"
 
+def authentification(masterkey):
+    
 
-
+#contabo hebergement 
 
 #test
 cle = generate_key()
