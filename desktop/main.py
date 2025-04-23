@@ -5,15 +5,15 @@ from mysql.connector import Error
 import bcrypt
 
 # Configuration CustomTkinter
-ctk.set_appearance_mode("dark")   # dark / light
-ctk.set_default_color_theme("blue")  # blue / green / dark-blue etc.
+ctk.set_appearance_mode("dark")   
+ctk.set_default_color_theme("blue")
 
 # Configuration de la base de données
 db_config = {
-    "host": "",  # Remplace par ton endpoint AWS RDS
-    "user": "",  # Ton utilisateur MySQL
-    "password": "",  # Ton mot de passe MySQL
-    "database": ""  # Nom de ta base de données
+    "host": "",  
+    "user": "",  
+    "password": "",  
+    "database": ""  
 }
 
 def hash_password(password):
