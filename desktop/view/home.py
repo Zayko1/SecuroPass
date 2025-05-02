@@ -50,7 +50,10 @@ class HomeApp(ctk.CTk):
     def logout(self):
         confirmed = messagebox.askyesno("Déconnexion", "Voulez-vous vous déconnecter ?")
         if confirmed:
-            main.
+            self.destroy()  # Ferme la fenêtre
+            from view.gui import GUI
+            gui = GUI()
+            gui.mainloop()
 
     def update_content(self, text):
         for widget in self.content_frame.winfo_children():
