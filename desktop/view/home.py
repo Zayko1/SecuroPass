@@ -1,6 +1,7 @@
 # view/home.py
 import customtkinter as ctk
 from tkinter import messagebox
+from view.password_manager import PwdManagementPage
 
 class HomeApp(ctk.CTk):
 
@@ -23,13 +24,11 @@ class HomeApp(ctk.CTk):
         self.content_frame.pack(side="right", expand=True, fill="both")
 
         # Boutons du menu
-        btn_gen = ctk.CTkButton(self.menu_frame, text="🔐 Générer un mot de passe", command=self.show_generate)
-        btn_scan = ctk.CTkButton(self.menu_frame, text="🔎 Scanner les mots de passe", command=self.show_scan)
         btn_consult = ctk.CTkButton(self.menu_frame, text="📂 Consulter mes mots de passe", command=self.show_consult)
         btn_settings = ctk.CTkButton(self.menu_frame, text="⚙️ Paramètres", command=self.show_settings)
         btn_logout = ctk.CTkButton(self.menu_frame, text="🚪 Me déconnecter", fg_color="red", command=self.logout)
 
-        for btn in (btn_gen, btn_scan, btn_consult, btn_settings, btn_logout):
+        for btn in (btn_consult, btn_settings, btn_logout):
             btn.pack(pady=10, padx=10, fill="x")
 
         self.label_info = ctk.CTkLabel(self.content_frame, text="Bienvenue dans SécuroPass !", font=("Arial", 18))
@@ -59,4 +58,28 @@ class HomeApp(ctk.CTk):
         for widget in self.content_frame.winfo_children():
             widget.destroy()
         ctk.CTkLabel(self.content_frame, text=text, font=("Arial", 16)).pack(pady=30)
+    
+    def show_consult(self):
+        self.clear_content_frame()
+        PwdManagementPage(self.content_frame, self.user_id, self.cle_chiffrement)
+
+
+    def clear_content_frame(self):
+        for widget in self.content_frame.winfo_children():
+            widget.destroy()
+
+    def logout(self):
+        confirmed = messagebox.askyesno("Déconnexion", "Voulez-vous vous déconnecter ?")
+        if confirmed:
+            self.destroy()  # Ferme la fenêtre actuelle
+            import customtkinter as ctk
+            from view.gui import MainPage
+            root = ctk.CTk()
+            MainPage(root)
+            root.mainloop()
+            
+    def show_consult(self):
+        for widget in self.content_frame.winfo_children():
+            widget.destroy()
+        PwdManagementPage(self.content_frame, self.user_id, self.cle_chiffrement)
 

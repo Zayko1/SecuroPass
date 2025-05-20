@@ -1,5 +1,5 @@
 import customtkinter as ctk
-
+import controller.controller
 class ConnexionPage:
     def __init__(self, app):
         self.app = app
@@ -23,9 +23,13 @@ class ConnexionPage:
         self.btn_connexion = ctk.CTkButton(self.app, text="Se connecter", width=250, command=self.se_connecter)
         self.btn_connexion.pack(pady=20)
 
+        # Bouton pour annuler
+        self.btn_annuler = ctk.CTkButton(self.app, text="Annuler", width=250, command=lambda: controller.retour_accueil(self.app), fg_color="red")
+        self.btn_annuler.pack(pady=20)
+
     def se_connecter(self):
         username = self.entry_username.get()
         password = self.entry_password.get()
         # Appeler la logique de connexion ici
-        print(f"Connexion avec {username} et {password}")
+        controller.controller.connexion_controller(username, password, self.app)
         # Si la connexion réussit, on redirige ailleurs, sinon on montre un message d'erreur

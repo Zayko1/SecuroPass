@@ -1,5 +1,6 @@
+#view>create_account.py
 import customtkinter as ctk
-
+from controller import controller
 class CreationComptePage:
     def __init__(self, app):
         self.app = app
@@ -23,9 +24,16 @@ class CreationComptePage:
         self.btn_creer = ctk.CTkButton(self.app, text="Créer le compte", width=250, command=self.creer_compte)
         self.btn_creer.pack(pady=20)
 
+        # Bouton pour annuler
+        self.btn_annuler = ctk.CTkButton(self.app, text="Annuler", width=250, command=lambda: controller.retour_accueil(self.app), fg_color="red")
+        self.btn_annuler.pack(pady=20)
+
     def creer_compte(self):
         username = self.entry_username.get()
         password = self.entry_password.get()
-        # Appeler la logique de création de compte ici
-        print(f"Création du compte avec {username} et {password}")
-        # Si tout est bon, on redirige vers la page principale ou autre, sinon un message d'erreur
+
+        from controller import controller
+        controller.creer_compte_controller(username, password)
+
+
+

@@ -8,8 +8,8 @@ import base64, os, random, string, re
 # ---- Configuration BDD ----
 db_config = {
     "host": "localhost",
-    "user": "root",
-    "password": "root",
+    "user": "app",
+    "password": "dev",
     "database": "securopass"
 }
 
@@ -18,37 +18,27 @@ def hash_password(password):
     salt = bcrypt.gensalt()
     return bcrypt.hashpw(password.encode(), salt)
 
-
 def verif_login(username, password):
     try:
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
-
-        # Vérifier si l'utilisateur existe
         cursor.execute("SELECT mot_de_passe_hash FROM cles_maitres WHERE username = %s", (username,))
         result = cursor.fetchone()
 
         if result:
-            # L'utilisateur existe, vérifier le mot de passe
             stored_hashed_password = result[0]
-            if bcrypt.checkpw(password.encode(), stored_hashed_password):
+            if bcrypt.checkpw(password.encode(), stored_hashed_password.encode('utf-8')):
                 return "Connexion réussie"
             else:
                 return "Mot de passe incorrect"
         else:
-            # L'utilisateur n'existe pas, créer un nouvel utilisateur
-            hashed_password = hash_password(password)
-            cursor.execute("INSERT INTO cles_maitres (username, mot_de_passe_hash) VALUES (%s, %s)", (username, hashed_password))
-            conn.commit()
-            return "Compte créé avec succès"
+            return "Utilisateur non trouvé"
 
     except Error as e:
         return f"error::{str(e)}"
     finally:
         if conn:
             conn.close()
-
-
 
 # ---- Fonctions de sécurité ----
 def generate_password(length):
@@ -81,27 +71,23 @@ def decrypt(encrypted_data, key):
     cipher = AES.new(key, AES.MODE_CBC, iv)
     return unpad(cipher.decrypt(ciphertext), AES.block_size).decode()
 
-def create_account(username, key, email):
+def get_passwords(user_id, cle):
     try:
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
+        cursor.execute("SELECT titre, identifiant, mot_de_passe_chiffre, site_web, niveau_securite FROM mots_de_passe WHERE id_utilisateur = %s", (user_id,))
+        rows = cursor.fetchall()
+        decrypted = []
 
-        # Vérifier si l'utilisateur existe déjà
-        cursor.execute("SELECT * FROM cles_maitres WHERE username = %s", (username,))
-        if cursor.fetchone():
-            return "L'utilisateur existe déjà."
+        for row in rows:
+            titre, identifiant, mot_de_passe_chiffre, site_web, niveau = row
+            mot_de_passe = decrypt(mot_de_passe_chiffre, cle)
+            decrypted.append((titre, identifiant, mot_de_passe, site_web, niveau))
 
-        # Hacher la clé (ou mot de passe) pour le stockage
-        hashed_key = hash_password(key)
-
-        # Insérer le nouvel utilisateur
-        cursor.execute(
-            "INSERT INTO cles_maitres (username, mot_de_passe_hash, cle_chiffrement) VALUES (%s, %s, %s)",
-            (username, hashed_key, key)
-        )
-        conn.commit()
-        conn.close()
-        return "Compte créé avec succès."
-
+        return decrypted
     except Error as e:
-        return f"Erreur : {str(e)}"
+        print("Erreur BDD :", e)
+        return []
+    finally:
+        if conn:
+            conn.close()
