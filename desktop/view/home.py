@@ -77,9 +77,9 @@ class HomeApp(ctk.CTk):
             root = ctk.CTk()
             MainPage(root)
             root.mainloop()
-            
+
     def show_consult(self):
         for widget in self.content_frame.winfo_children():
             widget.destroy()
-        PwdManagementPage(self.content_frame, self.user_id, self.cle_chiffrement)
+        PwdManagementPage(self.content_frame)
 
