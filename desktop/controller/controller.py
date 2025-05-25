@@ -26,21 +26,20 @@ def retour_accueil(app_actuel):
     MainPage(new_app)
     new_app.mainloop()
 
-def connexion_controller(username, password, app):
-    if not username or not password:
-        messagebox.showwarning("Erreur", "Veuillez remplir tous les champs.")
-        return
+class Controller:
+    def __init__(self, model):
+        self.model = model
 
-    result = model.verif_login(username, password)
-    
-    if result == "Connexion réussie":
-        messagebox.showinfo("Bienvenue", "Connexion réussie !")
-        # TODO : Rediriger vers la page principale après connexion
-        app.destroy()
-        # MainPage(app) ou redirection vers une interface utilisateur
-    elif result == "Mot de passe incorrect":
-        messagebox.showerror("Erreur", "Mot de passe incorrect.")
-    elif result.startswith("error::"):
-        messagebox.showerror("Erreur", f"Problème de connexion : {result.split('::')[1]}")
-    else:
-        messagebox.showerror("Erreur", result)
+    def connexion_controller(self, username, password, app):
+        # model.verif_login renvoie (bool, message_ou_user_key)
+        ok, payload = self.model.verif_login(username, password)
+
+        if not ok:
+            # en cas d’erreur, renvoyez une chaîne "error::…"
+            return f"error::{payload}"
+
+        # en cas de succès, payload est la user_key décryptée
+        app.user_key = payload
+
+        # vous pouvez soit renvoyer "OK", soit un message personnalisé
+        return "OK"

@@ -2,43 +2,108 @@ import mysql.connector
 from mysql.connector import Error
 import bcrypt
 from Crypto.Cipher import AES
+from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Util.Padding import pad, unpad
 import base64, os, random, string, re
 
 # ---- Configuration BDD ----
 db_config = {
-    "host": "localhost",
-    "user": "app",
-    "password": "dev",
-    "database": "securopass"
+    "host": "",
+    "user": "",
+    "port": "3306",
+    "password": "",
+    "database": ""
 }
 
 # ---- Gestion des comptes ----
-def hash_password(password):
-    salt = bcrypt.gensalt()
-    return bcrypt.hashpw(password.encode(), salt)
 
-def verif_login(username, password):
+def create_account(username, password, email):
+    conn = None
     try:
         conn = mysql.connector.connect(**db_config)
         cursor = conn.cursor()
-        cursor.execute("SELECT mot_de_passe_hash FROM cles_maitres WHERE username = %s", (username,))
-        result = cursor.fetchone()
 
-        if result:
-            stored_hashed_password = result[0]
-            if bcrypt.checkpw(password.encode(), stored_hashed_password.encode('utf-8')):
-                return "Connexion réussie"
-            else:
-                return "Mot de passe incorrect"
-        else:
-            return "Utilisateur non trouvé"
+        # 1) unicité
+        cursor.execute("SELECT 1 FROM cles_maitres WHERE username = %s", (username,))
+        if cursor.fetchone():
+            return "L'utilisateur existe déjà."
 
+        # 2) hash bcrypt
+        pwd_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+
+        # 3) clé utilisateur, sel KDF, dérivation
+        user_key = os.urandom(32)
+        kdf_salt = os.urandom(16)
+        enc_key = PBKDF2(password, kdf_salt, dkLen=32, count=200_000)
+        
+
+        # 4) chiffrement AES-GCM de user_key
+        cipher = AES.new(enc_key, AES.MODE_GCM)
+        ciphertext, tag = cipher.encrypt_and_digest(user_key)
+
+        # 5) insertion
+        cursor.execute(
+            """
+            INSERT INTO cles_maitres
+              (username,
+               mot_de_passe_hash,
+               cle_chiffrement,
+               kdf_salt,
+               nonce,
+               tag,
+               encrypted_key)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
+            (
+                username,
+                pwd_hash,
+                user_key,
+                kdf_salt,
+                cipher.nonce,
+                tag,
+                ciphertext
+            )
+        )
+        conn.commit()
+        return "Compte créé avec succès."
     except Error as e:
-        return f"error::{str(e)}"
+        return f"Erreur BDD : {e}"
     finally:
         if conn:
             conn.close()
+
+def verif_login(username, password):
+    conn = None
+    try:
+        conn = mysql.connector.connect(**db_config)
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT mot_de_passe_hash, kdf_salt, nonce, tag, encrypted_key
+            FROM cles_maitres
+            WHERE username = %s
+        """, (username,))
+        row = cursor.fetchone()
+        if not row:
+            return False, "Utilisateur non trouvé"
+
+        stored_hash, kdf_salt, nonce, tag, ciphertext = row
+        # 1) check bcrypt
+        if not bcrypt.checkpw(password.encode(), stored_hash):
+            return False, "Mot de passe incorrect"
+
+        # 2) re-dériver la clé et déchiffrer
+        enc_key = PBKDF2(password, kdf_salt, dkLen=32, count=200_000)
+        cipher = AES.new(enc_key, AES.MODE_GCM, nonce=nonce)
+        user_key = cipher.decrypt_and_verify(ciphertext, tag)
+
+        return True, user_key
+
+    except (Error, ValueError) as e:
+        return False, f"Erreur lors de la connexion : {e}"
+    finally:
+        if conn:
+            conn.close()
+
 
 # ---- Fonctions de sécurité ----
 def generate_password(length):

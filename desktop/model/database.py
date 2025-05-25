@@ -5,9 +5,10 @@ from mysql.connector import Error
 
 def get_connection():
     return mysql.connector.connect(
-        host='localhost',
-        user='app',
-        password='dev',
+        host='217.154.24.244',
+        port=3306,
+        user='root',
+        password='IndienTéméraire19%',
         database='securopass'
     )
 
