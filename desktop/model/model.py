@@ -1,4 +1,6 @@
 import mysql.connector
+import os
+from dotenv import load_dotenv, find_dotenv
 from mysql.connector import Error
 import bcrypt
 from Crypto.Cipher import AES
@@ -6,13 +8,23 @@ from Crypto.Protocol.KDF import PBKDF2
 from Crypto.Util.Padding import pad, unpad
 import base64, os, random, string, re
 
+# cherche automatiquement le .env dans ce dossier ou ses parents
+load_dotenv(find_dotenv())
+
+# Récupère chaque variable, lève KeyError si manquante
+DB_HOST     = os.environ["DB_HOST"]
+DB_USER     = os.environ["DB_USER"]
+DB_PORT     = int(os.environ["DB_PORT"])       # convertit en int
+DB_PASSWORD = os.environ["DB_PASSWORD"]
+DB_NAME     = os.environ["DB_NAME"]
+
 # ---- Configuration BDD ----
 db_config = {
-    "host": "",
-    "user": "",
-    "port": "3306",
-    "password": "",
-    "database": ""
+    "host":     os.getenv("DB_HOST"),
+    "user":     os.getenv("DB_USER"),
+    "port":     os.getenv("DB_PORT"),
+    "password": os.getenv("DB_PASSWORD"),
+    "database": os.getenv("DB_NAME")
 }
 
 # ---- Gestion des comptes ----
@@ -29,7 +41,7 @@ def create_account(username, password, email):
             return "L'utilisateur existe déjà."
 
         # 2) hash bcrypt
-        pwd_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+        pwd_hash = bcrypt.hashpw(password.encode(), bcrypt.gensalt()).decode('utf-8')
 
         # 3) clé utilisateur, sel KDF, dérivation
         user_key = os.urandom(32)
@@ -86,10 +98,12 @@ def verif_login(username, password):
         if not row:
             return False, "Utilisateur non trouvé"
 
-        stored_hash, kdf_salt, nonce, tag, ciphertext = row
-        # 1) check bcrypt
+        stored_hash_str, kdf_salt, nonce, tag, ciphertext = row
+       # bcrypt.checkpw attend des bytes → on ré-encode la chaîne récupérée
+        stored_hash = stored_hash_str.encode('utf-8')
+      # 1) vérification du mot de passe
         if not bcrypt.checkpw(password.encode(), stored_hash):
-            return False, "Mot de passe incorrect"
+             return False, "Mot de passe incorrect"
 
         # 2) re-dériver la clé et déchiffrer
         enc_key = PBKDF2(password, kdf_salt, dkLen=32, count=200_000)
