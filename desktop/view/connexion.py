@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from tkinter import messagebox
-from controller.controller import Controller, retour_accueil
+from controller.controller import Controller
 import model.model as model_module   # on importe le module, pas une classe
 from config import db_config         # charge .env et fallback pour db_config
 
@@ -25,21 +25,17 @@ class ConnexionPage:
         self.entry_password = ctk.CTkEntry(self.app, show="*", width=250)
         self.entry_password.pack(pady=5)
 
-        self.btn_connexion = ctk.CTkButton(
-            self.app,
+        self.btn_connexion = ctk.CTkButton(self.app,
             text="Se connecter",
             width=250,
-            command=self.se_connecter
-        )
+            command=self.se_connecter)
         self.btn_connexion.pack(pady=20)
 
-        self.btn_annuler = ctk.CTkButton(
-            self.app,
+        self.btn_annuler = ctk.CTkButton(self.app,
             text="Annuler",
             width=250,
             fg_color="red",
-            command=lambda: retour_accueil(self.app)
-        )
+            command=self.app.show_main)
         self.btn_annuler.pack(pady=20)
 
     def se_connecter(self):
@@ -58,5 +54,5 @@ class ConnexionPage:
         messagebox.showinfo("Connexion réussie", "Bienvenue !", parent=self.app)
 
         # bascule vers l'écran principal
-        if hasattr(self.app, "show_home"):
+        if hasattr(self.app, "show_main"):
             self.app.show_home()

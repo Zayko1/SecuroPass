@@ -11,31 +11,39 @@ class MainPage:
         self.app = app
         self.app.title("SécuroPass")
         self.app.geometry("400x300")
+        self.show()
         
-        self.create_widgets()
+    def show(self):
+        # Vide tous les widgets précédents
+        for widget in self.app.winfo_children():
+            widget.destroy()
 
-    def create_widgets(self):
-        # Titre de la page principale
+        # Widgets de la page d'accueil
         ctk.CTkLabel(self.app, text="Bienvenue sur SécuroPass", font=("Arial", 20)).pack(pady=30)
 
-        # Bouton pour se connecter
-        btn_se_connecter = ctk.CTkButton(self.app, text="Se connecter", width=250, command=self.se_connecter)
-        btn_se_connecter.pack(pady=10)
+        ctk.CTkButton(
+            self.app,
+            text="Se connecter",
+            width=250,
+            command=self.se_connecter
+        ).pack(pady=10)
 
-        # Bouton pour créer un compte
-        btn_creer_compte = ctk.CTkButton(self.app, text="Créer un compte", width=250, command=self.creer_compte)
-        btn_creer_compte.pack(pady=10)
+        ctk.CTkButton(
+            self.app,
+            text="Créer un compte",
+            width=250,
+            command=self.creer_compte
+        ).pack(pady=10)
 
     def se_connecter(self):
-        # Rediriger vers la page de connexion
-        self.app.destroy()  # Fermer la page actuelle
-        new_app = ctk.CTk()  # Créer une nouvelle instance pour la page de connexion
-        ConnexionPage(new_app)
-        new_app.mainloop()
+        # On vide la fenêtre et on y affiche la page de connexion
+        for widget in self.app.winfo_children():
+            widget.destroy()
+        ConnexionPage(self.app)
+
 
     def creer_compte(self):
-        # Rediriger vers la page de création du compte
-        self.app.destroy()  # Fermer la page actuelle
-        new_app = ctk.CTk()  # Créer une nouvelle instance pour la page de création du compte
-        CreationComptePage(new_app)
-        new_app.mainloop()
+        # On vide la fenêtre et on y affiche la page de création
+        for widget in self.app.winfo_children():
+            widget.destroy()
+        CreationComptePage(self.app)
