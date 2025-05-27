@@ -1,69 +1,74 @@
-#controller>controller.py
+# desktop/controller/controller.py
+
 from model import model
-from tkinter import messagebox
-import customtkinter as ctk
 
 class Controller:
     def __init__(self, model):
         self.model = model
 
-    def connexion_controller(self, username, password, app):
-        # model.verif_login renvoie (bool, message_ou_user_key)
-        ok, result = self.model.verif_login(username, password)
-
+    def connexion_controller(self, username: str, password: str, app) -> tuple[bool,str]:
+        """
+        Authentifie l'utilisateur, stocke user_id et user_key dans app,
+        puis renvoie (True, message) ou (False, message).
+        """
+        ok, payload = self.model.verif_login(username, password)
         if not ok:
-            # en cas d’erreur, renvoyez une chaîne "error::…"
-            return False, result
+            return False, payload
 
-        # en cas de succès, result est la user_key
-        app.user_key = result
-        return True, result
-    
-    def creer_compte_controller(self, username, password):
+        # payload est un dict {'user_key':..., 'user_id':...}
+        app.user_key = payload["user_key"]
+        app.user_id  = payload["user_id"]
+        return True, "Connexion réussie"
+
+    def creer_compte_controller(self, username: str, password: str) -> tuple[bool,str]:
         """
-        Renvoie (True, msg) si le compte est créé,
-        ou (False, msg) sinon.
+        Crée un compte : renvoie (True, msg) si OK, (False, msg) sinon.
         """
-        # 1) validation simple
         if not username or not password:
             return False, "Veuillez remplir tous les champs."
 
-        # 2) génération de la clé de chiffrement
         key = self.model.generate_key()
+        ok, msg = self.model.create_account(username, password, key)
+        return ok, msg
 
-        # 3) appel au modèle
-        result = self.model.create_account(username, password, key)
+    def add_password_controller(self,
+                                user_id: int,
+                                title: str,
+                                ident: str,
+                                pwd: str,
+                                site: str,
+                                notes: str,
+                                niveau: str,
+                                user_key: bytes) -> tuple[bool,str]:
+        """
+        Ajoute un mot de passe : renvoie (True, msg) ou (False, msg).
+        """
+        ok, msg = self.model.add_password(
+            user_id, title, ident, pwd, site, notes, niveau, user_key
+        )
+        return ok, msg
 
-        # 4) interprétation du message
-        if "succès" in result.lower():
-            return True, result
-        else:
-            return False, result
+    def get_passwords_controller(self,
+                                 user_id: int,
+                                 user_key: bytes) -> list[dict]:
+        """
+        Récupère et renvoie la liste des mots de passe décryptés.
+        """
+        return self.model.get_passwords(user_id, user_key)
 
+    def update_password_controller(self,
+                                   entry_id: int,
+                                   new_pwd: str,
+                                   user_key: bytes) -> tuple[bool,str]:
+        """
+        Met à jour un mot de passe existant : renvoie (True, msg) ou (False, msg).
+        """
+        ok, msg = self.model.update_password(entry_id, new_pwd, user_key)
+        return ok, msg
 
-
-
-"""
-def creer_compte_controller(username, password):
-    if not username or not password:
-        messagebox.showwarning("Erreur", "Veuillez remplir tous les champs.")
-        return
-
-    # On génère une clé de chiffrement sécurisée
-    key = model.generate_key()
-
-    result = model.create_account(username, password, key)
-
-    if result == "L'utilisateur existe déjà.":
-        messagebox.showerror("Erreur", "Ce nom d'utilisateur est déjà pris.")
-    elif result == "Compte créé avec succès.":
-        messagebox.showinfo("Succès", "Compte créé avec succès !")
-    elif result.startswith("Erreur"):
-        messagebox.showerror("Erreur", result)
-
-def retour_accueil(app_actuel):
-    app_actuel.destroy()
-    new_app = ctk.CTk()
-    MainPage(new_app)
-    new_app.mainloop()
-"""
+    def delete_password_controller(self, entry_id: int) -> tuple[bool,str]:
+        """
+        Supprime un mot de passe : renvoie (True, msg) ou (False, msg).
+        """
+        ok, msg = self.model.delete_password(entry_id)
+        return ok, msg
