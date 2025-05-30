@@ -285,3 +285,28 @@ def delete_password(entry_id: int) -> tuple[bool,str]:
         return False, f"Erreur BDD (delete_password) : {e}"
     finally:
         conn.close()
+
+def update_entry(entry_id: int,
+                 title: str,
+                 ident: str,
+                 note: str) -> tuple[bool,str]:
+    """
+    Met à jour titre, identifiant et notes d'une entrée mots_de_passe.
+    """
+    try:
+        conn = _get_connection()
+        cur  = conn.cursor()
+        cur.execute("""
+            UPDATE mots_de_passe
+               SET titre=%s,
+                   identifiant=%s,
+                   notes=%s
+             WHERE id=%s
+        """, (title, ident, note, entry_id))
+        conn.commit()
+        return True, "Métadonnées mises à jour."
+    except Error as e:
+        conn.rollback()
+        return False, f"Erreur BDD (update_entry) : {e}"
+    finally:
+        conn.close()

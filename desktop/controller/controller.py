@@ -72,3 +72,25 @@ class Controller:
         """
         ok, msg = self.model.delete_password(entry_id)
         return ok, msg
+
+    def update_entry_controller(self,
+                                entry_id: int,
+                                title: str,
+                                ident: str,
+                                pwd: str,
+                                note: str,
+                                user_key: bytes) -> tuple[bool,str]:
+        """
+        Met à jour titre/identifiants/mot de passe/note.
+        """
+        # 1) mise à jour du mot de passe chiffré
+        ok, msg = self.model.update_password(entry_id, pwd, user_key)
+        if not ok:
+            return False, msg
+
+        # 2) mise à jour du reste des métadonnées
+        ok2, msg2 = self.model.update_entry(entry_id, title, ident, note)
+        if not ok2:
+            return False, msg2
+
+        return True, "Entrée mise à jour."

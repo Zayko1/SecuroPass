@@ -5,6 +5,7 @@ from tkinter import ttk, messagebox
 import string
 from controller.controller import Controller
 import model.model as model_module
+import tkinter as tk
 
 class PwdManagementPage:
     def __init__(self, parent_frame):
@@ -41,7 +42,7 @@ class PwdManagementPage:
         ).pack(pady=10)
 
         # Arbre / tableau
-        cols = ("Titre", "Identifiant", "Site", "Dernière modif")
+        cols = ("Titre", "Identifiant", "Mot de passe", "Site", "Dernière modif")
         self.tree = ttk.Treeview(self.container,
                                  columns=cols,
                                  show="headings",
@@ -51,6 +52,12 @@ class PwdManagementPage:
             self.tree.column(col, width=150, anchor="center")
         self.tree.pack(pady=20, expand=True, fill="both")
 
+        self.menu = tk.Menu(self.app, tearoff=0)
+        self.menu.add_command(label="Copier l'identifiant", command=self._copy_ident)
+        self.menu.add_command(label="Copier le mot de passe", command=self._copy_pwd)
+
+        # Binder clic droit sur le Treeview
+        self.tree.bind("<Button-3>", self._on_right_click)
         # Double-clic pour afficher le mot de passe en clair
         self.tree.bind("<Double-1>", self.on_double_click)
 
@@ -64,13 +71,16 @@ class PwdManagementPage:
                                                           self.user_key)
         # Rempli l'arbre
         for e in entries:
-            # on affiche juste la date comme "Dernière modif"
+            # on masque le mot de passe dans le tableau par 5 étoiles
+            masked_pwd = "*****"
             self.tree.insert("", "end",
                              iid=e["id"],
                              values=(e["titre"],
                                      e["identifiant"],
+                                     masked_pwd,
                                      e["site_web"],
-                                     e["date_ajout"].strftime("%Y-%m-%d %H:%M")))
+                                     e["date_ajout"].strftime("%Y-%m-%d %H:%M")
+                                     ))
     # ──────────────────────────────────────────────────────────────────────────
     def afficher_formulaire_popup(self):
         self.popup = ctk.CTkToplevel(self.container)
@@ -160,17 +170,99 @@ class PwdManagementPage:
         self.refresh_list()
 
     def on_double_click(self, event):
-        # Affiche le mot de passe en clair dans une boîte de dialogue
-        item = self.tree.focus()
-        if not item:
+        """Ouvre un popup pour modifier l'entrée sélectionnée."""
+        iid = self.tree.focus()
+        if not iid:
             return
-        entry_id = int(item)
-        # On refetch l'entrée pour la décrypter
+        entry_id = int(iid)
+        # Récupère l'entrée complète
         entries = self.controller.get_passwords_controller(
             self.user_id, self.user_key
         )
         entry = next((e for e in entries if e["id"] == entry_id), None)
+        if not entry:
+            return
+
+        # --- Création du popup ---
+        popup = ctk.CTkToplevel(self.app)
+        popup.title("Modifier l'entrée")
+        popup.geometry("400x300")
+
+        # Champs préremplis
+        labels = [("Titre", entry["titre"]),
+                  ("Identifiant", entry["identifiant"]),
+                  ("Mot de passe", entry["password"]),
+                  ("Note", entry.get("notes",""))]
+        entries_widgets = {}
+        for i, (label, value) in enumerate(labels):
+            ctk.CTkLabel(popup, text=label).grid(row=i, column=0, padx=10, pady=5, sticky="e")
+            show = None if label!="Mot de passe" else "*"
+            e = ctk.CTkEntry(popup, width=200, show=show)
+            e.insert(0, value)
+            e.grid(row=i, column=1, pady=5, sticky="w")
+            entries_widgets[label] = e
+
+        def save_changes():
+            new_title = entries_widgets["Titre"].get().strip()
+            new_ident = entries_widgets["Identifiant"].get().strip()
+            new_pwd   = entries_widgets["Mot de passe"].get()
+            new_note  = entries_widgets["Note"].get().strip()
+
+            # Appel au contrôleur (voir Section 2)
+            ok, msg = self.controller.update_entry_controller(
+                entry_id, new_title, new_ident, new_pwd, new_note, self.user_key
+            )
+            if ok:
+                messagebox.showinfo("Succès", msg, parent=popup)
+                popup.destroy()
+                self.refresh_list()
+            else:
+                messagebox.showerror("Erreur", msg, parent=popup)
+
+        # Bouton Enregistrer
+        ctk.CTkButton(popup, text="Enregistrer", command=save_changes).grid(
+            row=len(labels), column=0, columnspan=2, pady=20
+        )
+            
+    def _on_right_click(self, event):
+        # Sélectionner la ligne sous le curseur
+        iid = self.tree.identify_row(event.y)
+        if not iid:
+            return
+        self.tree.selection_set(iid)
+
+        # Récupérer les données
+        values = self.tree.item(iid, "values")
+        # cols = ("Titre", "Identifiant", "Mot de passe", "Site", "Dernière modif")
+        self._ctx_ident = values[1]
+        self._ctx_pwd   = values[2]
+
+        # Afficher le menu
+        try:
+            self.menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            self.menu.grab_release()
+
+    def _copy_ident(self):
+        # Copier identifiant dans le presse-papier
+        item = self.tree.focus()
+        if not item:
+            return
+        entry_id = int(item)
+        entries = self.controller.get_passwords_controller(self.user_id, self.user_key)
+        entry   = next((e for e in entries if e["id"] == entry_id), None)
         if entry:
-            messagebox.showinfo("Mot de passe",
-                                entry["password"],
-                                parent=self.container)
+            self.app.clipboard_clear()
+            self.app.clipboard_append(entry["identifiant"])
+
+    def _copy_pwd(self):
+        # Copier mot de passe dans le presse-papier
+        item = self.tree.focus()
+        if not item:
+            return
+        entry_id = int(item)
+        entries = self.controller.get_passwords_controller(self.user_id, self.user_key)
+        entry   = next((e for e in entries if e["id"] == entry_id), None)
+        if entry:
+            self.app.clipboard_clear()
+            self.app.clipboard_append(entry["password"])
