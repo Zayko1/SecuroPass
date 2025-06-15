@@ -270,21 +270,21 @@ class PwdManagementPage:
             self.app.clipboard_clear()
             self.app.clipboard_append(entry["password"])
     
-        def _delete_entry(self):
-            item = self.tree.focus()
-            if not item:
-                return
-            entry_id = int(item)
-            confirm = messagebox.askyesno(
-                "Suppression", "Supprimer cette entrée ?",
-                parent=self.app
-            )
-            if not confirm:
-                return
-            ok, msg = self.controller.delete_password_controller(entry_id)
-            if ok:
-                self.refresh_list()
-                messagebox.showinfo("Suppression", "Entrée supprimée !", parent=self.app)
-            else:
-                messagebox.showerror("Erreur", msg, parent=self.app)
+    def _delete_entry(self):
+        item = self.tree.focus()
+        if not item:
+            return
+        entry_id = int(item)
+        confirm = messagebox.askyesno(
+            "Suppression", "Supprimer cette entrée ?",
+            parent=self.app
+        )
+        if not confirm:
+            return
+        ok, msg = self.controller.delete_password_controller(entry_id)
+        if ok:
+            self.refresh_list()
+            messagebox.showinfo("Suppression", "Entrée supprimée !", parent=self.app)
+        else:
+            messagebox.showerror("Erreur", msg, parent=self.app)
 
