@@ -55,6 +55,9 @@ class PwdManagementPage:
         self.menu = tk.Menu(self.app, tearoff=0)
         self.menu.add_command(label="Copier l'identifiant", command=self._copy_ident)
         self.menu.add_command(label="Copier le mot de passe", command=self._copy_pwd)
+        self.menu.add_separator()
+        self.menu.add_command(label="Supprimer l'entrée", command=self._delete_entry)
+
 
         # Binder clic droit sur le Treeview
         self.tree.bind("<Button-3>", self._on_right_click)
@@ -266,3 +269,22 @@ class PwdManagementPage:
         if entry:
             self.app.clipboard_clear()
             self.app.clipboard_append(entry["password"])
+    
+        def _delete_entry(self):
+            item = self.tree.focus()
+            if not item:
+                return
+            entry_id = int(item)
+            confirm = messagebox.askyesno(
+                "Suppression", "Supprimer cette entrée ?",
+                parent=self.app
+            )
+            if not confirm:
+                return
+            ok, msg = self.controller.delete_password_controller(entry_id)
+            if ok:
+                self.refresh_list()
+                messagebox.showinfo("Suppression", "Entrée supprimée !", parent=self.app)
+            else:
+                messagebox.showerror("Erreur", msg, parent=self.app)
+
