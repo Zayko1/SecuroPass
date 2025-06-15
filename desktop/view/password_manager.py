@@ -6,6 +6,7 @@ import string
 from controller.controller import Controller
 import model.model as model_module
 import tkinter as tk
+from model import model
 
 class PwdManagementPage:
     def __init__(self, parent_frame):
@@ -108,6 +109,10 @@ class PwdManagementPage:
                                  show="*" if is_pwd else None)
             entry.grid(row=idx, column=1, pady=5)
             self.entries_form[label.lower()] = entry
+            if label == "Mot de passe":
+                btn_gen = ctk.CTkButton(self.popup, text="🔄 Générer", width=80,
+                                        command=lambda: self.generer_et_renseigner_mdp())
+                btn_gen.grid(row=idx, column=2, padx=5)
 
         # Barre d'évaluation
         self.security_bar = ctk.CTkProgressBar(self.popup, width=200)
@@ -135,14 +140,23 @@ class PwdManagementPage:
                       command=self.enregistrer_mot_de_passe
         ).grid(row=len(labels)+2, column=0, columnspan=2, pady=20)
 
+    def generer_et_renseigner_mdp(self, length=16):
+        mdp = model.generate_password(length)
+        self.entries_form["mot de passe"].delete(0, "end")
+        self.entries_form["mot de passe"].insert(0, mdp)
+        # Optionnel : évalue la force du mot de passe généré
+        self.evaluer_mot_de_passe()
+
+
     def evaluer_mot_de_passe(self, event=None):
         pwd   = self.entries_form["mot de passe"].get()
         score = self.calculer_score_mdp(pwd)
-        # mise à jour barre & couleur
-        self.security_bar.set(score/5)
-        color = "green" if score > 4 else "orange" if score > 2 else "red"
-        self.security_bar.configure(progress_color=color)
-        self.level_var.set(["Faible","Moyen","Fort","Fort","Fort"][score])
+        levels = ["Faible", "Moyen", "Fort", "Fort", "Très fort", "Très fort"]
+        colors = ["red",    "orange", "orange", "green", "green", "green"]
+        score = max(0, min(score, 5))
+        self.security_bar.set(score / 5)
+        self.security_bar.configure(progress_color=colors[score])
+        self.level_var.set(levels[score])
 
     def calculer_score_mdp(self, pwd: str) -> int:
         score = 0
