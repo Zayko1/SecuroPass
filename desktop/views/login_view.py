@@ -154,7 +154,8 @@ class LoginView(ctk.CTkFrame):
             messagebox.showerror("Erreur", "Veuillez remplir tous les champs.")
             return
         
-        self.login_button.configure(text="Connexion...", state="disabled")
+        # Désactiver le bouton et afficher un message de chargement
+        self.login_button.configure(text="Vérification...", state="disabled")
         self.update()  # Force UI update
         
         success, result = self.auth_controller.login(username, password)
@@ -164,7 +165,28 @@ class LoginView(ctk.CTkFrame):
             self.app.switch_view(MainView, user_data=result)
         else:
             self.login_button.configure(text="Se connecter", state="normal")
-            messagebox.showerror("Erreur de connexion", result)
+            
+            # Vérifier si c'est un blocage temporaire
+            if "Réessayez dans" in result:
+                messagebox.showerror("Compte temporairement bloqué", result)
+                # Optionnel : désactiver temporairement les champs
+                self.username_entry.configure(state="disabled")
+                self.password_entry.configure(state="disabled")
+                self.login_button.configure(state="disabled")
+                
+                # Réactiver après 3 secondes pour afficher le temps restant
+                self.after(3000, self.enable_login_fields)
+            else:
+                messagebox.showerror("Erreur de connexion", result)
+        
+        # Vider le champ mot de passe pour la sécurité
+        self.password_entry.delete(0, "end")
+
+    def enable_login_fields(self):
+        """Réactiver les champs de connexion"""
+        self.username_entry.configure(state="normal")
+        self.password_entry.configure(state="normal")
+        self.login_button.configure(state="normal")
     
     def show_register(self):
         from views.register_view import RegisterView

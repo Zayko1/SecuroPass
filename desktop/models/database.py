@@ -569,3 +569,159 @@ class Database:
                 cur.close()
             if conn and conn.is_connected():
                 conn.close()
+
+    @staticmethod
+    def check_login_attempts(username: str) -> tuple[bool, int, str]:
+        """
+        Vérifier si l'utilisateur peut tenter de se connecter
+        Retourne (peut_essayer, tentatives_restantes, message)
+        """
+        conn = None
+        cur = None
+        try:
+            conn = Database.get_connection()
+            cur = conn.cursor()
+            
+            # Nettoyer les anciennes tentatives (plus de 3 minutes)
+            cur.execute("""
+                DELETE FROM login_attempts 
+                WHERE username=%s AND attempt_time < DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+            """, (username,))
+            conn.commit()
+            
+            # Compter les tentatives échouées dans les 3 dernières minutes
+            cur.execute("""
+                SELECT COUNT(*) 
+                FROM login_attempts 
+                WHERE username=%s 
+                AND success=FALSE 
+                AND attempt_time >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+            """, (username,))
+            
+            failed_attempts = cur.fetchone()[0]
+            
+            if failed_attempts >= 5:
+                # Calculer le temps restant avant de pouvoir réessayer
+                cur.execute("""
+                    SELECT TIMESTAMPDIFF(SECOND, NOW(), DATE_ADD(MIN(attempt_time), INTERVAL 3 MINUTE))
+                    FROM login_attempts 
+                    WHERE username=%s 
+                    AND success=FALSE 
+                    AND attempt_time >= DATE_SUB(NOW(), INTERVAL 3 MINUTE)
+                """, (username,))
+                
+                seconds_left = cur.fetchone()[0]
+                if seconds_left and seconds_left > 0:
+                    minutes = seconds_left // 60
+                    seconds = seconds_left % 60
+                    return False, 0, f"Trop de tentatives échouées. Réessayez dans {minutes}m {seconds}s."
+            
+            tentatives_restantes = 5 - failed_attempts
+            return True, tentatives_restantes, ""
+            
+        except Exception as e:
+            print(f"Erreur check_login_attempts: {e}")
+            return True, 5, ""  # En cas d'erreur, on laisse passer
+        finally:
+            if cur:
+                cur.close()
+            if conn and conn.is_connected():
+                conn.close()
+
+    @staticmethod
+    def record_login_attempt(username: str, success: bool, ip_address: str = None) -> None:
+        """Enregistrer une tentative de connexion"""
+        conn = None
+        cur = None
+        try:
+            conn = Database.get_connection()
+            cur = conn.cursor()
+            
+            cur.execute("""
+                INSERT INTO login_attempts (username, ip_address, success)
+                VALUES (%s, %s, %s)
+            """, (username, ip_address, success))
+            
+            conn.commit()
+            
+        except Exception as e:
+            print(f"Erreur record_login_attempt: {e}")
+        finally:
+            if cur:
+                cur.close()
+            if conn and conn.is_connected():
+                conn.close()
+
+    @staticmethod
+    def verify_login(username: str, password: str) -> tuple[bool, dict|str]:
+        """Vérifier les identifiants avec limitation des tentatives"""
+        # D'abord vérifier si l'utilisateur peut tenter de se connecter
+        can_try, attempts_left, message = Database.check_login_attempts(username)
+        if not can_try:
+            return False, message
+        
+        conn = None
+        cur = None
+        try:
+            conn = Database.get_connection()
+            cur = conn.cursor()
+            
+            cur.execute("""
+                SELECT id, mot_de_passe_hash, cle_chiffrement, kdf_salt, nonce, tag, encrypted_key
+                FROM cles_maitres WHERE username=%s
+            """, (username,))
+            
+            row = cur.fetchone()
+            if not row:
+                # Enregistrer la tentative échouée
+                Database.record_login_attempt(username, False)
+                if attempts_left > 1:
+                    return False, f"Utilisateur non trouvé. ({attempts_left - 1} tentatives restantes)"
+                else:
+                    return False, "Utilisateur non trouvé. Prochaine tentative bloquera le compte pour 3 minutes."
+            
+            user_id, stored_hash, clear_key, kdf_salt, nonce, tag, ciphertext = row
+            
+            # Vérifier le mot de passe
+            if not bcrypt.checkpw(password.encode(), stored_hash.encode("utf-8")):
+                # Enregistrer la tentative échouée
+                Database.record_login_attempt(username, False)
+                if attempts_left > 1:
+                    return False, f"Mot de passe incorrect. ({attempts_left - 1} tentatives restantes)"
+                else:
+                    return False, "Mot de passe incorrect. Prochaine tentative bloquera le compte pour 3 minutes."
+            
+            # Connexion réussie - enregistrer et nettoyer les tentatives
+            Database.record_login_attempt(username, True)
+            
+            # Nettoyer toutes les tentatives échouées pour cet utilisateur
+            conn2 = Database.get_connection()
+            cur2 = conn2.cursor()
+            cur2.execute("DELETE FROM login_attempts WHERE username=%s AND success=FALSE", (username,))
+            conn2.commit()
+            cur2.close()
+            conn2.close()
+            
+            # Déchiffrer la clé utilisateur
+            try:
+                enc_key = PBKDF2(password, kdf_salt, dkLen=32, count=200_000)
+                cipher = AES.new(enc_key, AES.MODE_GCM, nonce=nonce)
+                user_key = cipher.decrypt_and_verify(ciphertext, tag)
+            except:
+                user_key = clear_key
+            
+            return True, {
+                "user_id": user_id,
+                "username": username,
+                "user_key": user_key
+            }
+            
+        except Error as e:
+            return False, f"Erreur de connexion à la base de données : {str(e)}"
+        except Exception as e:
+            return False, f"Erreur : {str(e)}"
+        finally:
+            if cur:
+                cur.close()
+            if conn and conn.is_connected():
+                conn.close()
