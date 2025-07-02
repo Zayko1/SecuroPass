@@ -5,6 +5,7 @@ from mysql.connector import Error
 from config import DB_CONFIG
 from Crypto.Cipher import AES
 from Crypto.Protocol.KDF import PBKDF2
+from datetime import datetime
 import bcrypt
 import string
 import random
@@ -336,3 +337,235 @@ class Database:
             return "Fort"
         else:
             return "Très Fort"
+
+    @staticmethod
+    def change_username(user_id: int, current_username: str, password: str, new_username: str) -> tuple[bool, str]:
+        """Changer le nom d'utilisateur"""
+        conn = None
+        cur = None
+        try:
+            conn = Database.get_connection()
+            cur = conn.cursor()
+            
+            # Debug
+            print(f"Debug change_username: user_id={user_id}, current_username={current_username}, new_username={new_username}")
+            
+            # Vérifier que le nouveau nom d'utilisateur n'existe pas déjà
+            query1 = "SELECT 1 FROM cles_maitres WHERE username=%s AND id!=%s"
+            params1 = (new_username, user_id)
+            print(f"Query1: {query1}")
+            print(f"Params1: {params1}")
+            cur.execute(query1, params1)
+            
+            if cur.fetchone():
+                return False, "Ce nom d'utilisateur est déjà pris."
+            
+            # Vérifier le mot de passe actuel
+            query2 = "SELECT mot_de_passe_hash FROM cles_maitres WHERE id=%s"
+            params2 = (user_id,)
+            print(f"Query2: {query2}")
+            print(f"Params2: {params2}")
+            cur.execute(query2, params2)
+            
+            row = cur.fetchone()
+            if not row:
+                return False, "Utilisateur non trouvé."
+            
+            stored_hash = row[0]
+            if not bcrypt.checkpw(password.encode(), stored_hash.encode("utf-8")):
+                return False, "Mot de passe incorrect."
+            
+            # Mettre à jour le nom d'utilisateur
+            query3 = "UPDATE cles_maitres SET username=%s WHERE id=%s"
+            params3 = (new_username, user_id)
+            print(f"Query3: {query3}")
+            print(f"Params3: {params3}")
+            cur.execute(query3, params3)
+            
+            conn.commit()
+            return True, "Nom d'utilisateur modifié avec succès!"
+            
+        except Exception as e:
+            print(f"Erreur dans change_username: {e}")
+            if conn:
+                conn.rollback()
+            return False, f"Erreur : {str(e)}"
+        finally:
+            if cur:
+                cur.close()
+            if conn and conn.is_connected():
+                conn.close()
+
+    @staticmethod
+    def change_password(user_id: int, username: str, current_password: str, new_password: str) -> tuple[bool, str]:
+        """Changer le mot de passe de l'utilisateur"""
+        conn = None
+        cur = None
+        try:
+            conn = Database.get_connection()
+            cur = conn.cursor()
+            
+            print(f"Debug change_password: user_id={user_id}, username={username}")
+            
+            # Récupérer les informations actuelles - requête simplifiée
+            query = "SELECT mot_de_passe_hash, cle_chiffrement, kdf_salt, nonce, tag, encrypted_key FROM cles_maitres WHERE id=%s"
+            params = (user_id,)
+            print(f"Query: {query}")
+            print(f"Params: {params}")
+            cur.execute(query, params)
+            
+            row = cur.fetchone()
+            if not row:
+                return False, "Utilisateur non trouvé."
+            
+            mot_de_passe_hash = row[0]
+            cle_chiffrement = row[1]
+            kdf_salt = row[2]
+            nonce = row[3]
+            tag = row[4]
+            encrypted_key = row[5]
+            
+            # Vérifier l'ancien mot de passe
+            if not bcrypt.checkpw(current_password.encode(), mot_de_passe_hash.encode("utf-8")):
+                return False, "Mot de passe actuel incorrect."
+            
+            # Récupérer la clé utilisateur
+            try:
+                if kdf_salt and nonce and tag and encrypted_key:
+                    enc_key = PBKDF2(current_password, kdf_salt, dkLen=32, count=200_000)
+                    cipher = AES.new(enc_key, AES.MODE_GCM, nonce=nonce)
+                    user_key = cipher.decrypt_and_verify(encrypted_key, tag)
+                else:
+                    user_key = cle_chiffrement
+            except Exception as e:
+                print(f"Erreur déchiffrement, utilisation clé de secours: {e}")
+                user_key = cle_chiffrement
+            
+            # Créer le nouveau hash
+            new_pwd_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt()).decode("utf-8")
+            
+            # Re-chiffrer la clé utilisateur avec le nouveau mot de passe
+            new_kdf_salt = os.urandom(16)
+            new_enc_key = PBKDF2(new_password, new_kdf_salt, dkLen=32, count=200_000)
+            
+            new_nonce = os.urandom(12)
+            new_cipher = AES.new(new_enc_key, AES.MODE_GCM, nonce=new_nonce)
+            new_ciphertext, new_tag = new_cipher.encrypt_and_digest(user_key)
+            
+            # Mettre à jour en base
+            update_query = "UPDATE cles_maitres SET mot_de_passe_hash=%s, kdf_salt=%s, nonce=%s, tag=%s, encrypted_key=%s WHERE id=%s"
+            update_params = (new_pwd_hash, new_kdf_salt, new_nonce, new_tag, new_ciphertext, user_id)
+            print(f"Update query: {update_query}")
+            print(f"Update params count: {len(update_params)}")
+            cur.execute(update_query, update_params)
+            
+            conn.commit()
+            return True, "Mot de passe modifié avec succès!"
+            
+        except Exception as e:
+            print(f"Erreur dans change_password: {e}")
+            if conn:
+                conn.rollback()
+            return False, f"Erreur : {str(e)}"
+        finally:
+            if cur:
+                cur.close()
+            if conn and conn.is_connected():
+                conn.close()
+
+    @staticmethod
+    def get_user_stats(user_id: int) -> dict:
+        """Obtenir les statistiques de l'utilisateur"""
+        conn = None
+        cur = None
+        try:
+            conn = Database.get_connection()
+            cur = conn.cursor()
+            
+            stats = {}
+            
+            # Date de création du compte
+            cur.execute("SELECT date_creation FROM cles_maitres WHERE id=%s", (user_id,))
+            row = cur.fetchone()
+            if row:
+                stats['created_date'] = row[0].strftime("%d/%m/%Y") if row[0] else "N/A"
+            
+            # Total de mots de passe
+            cur.execute("SELECT COUNT(*) FROM mots_de_passe WHERE id_utilisateur=%s", (user_id,))
+            row = cur.fetchone()
+            stats['total_passwords'] = row[0] if row else 0
+            
+            # Répartition par force
+            cur.execute("""
+                SELECT niveau_securite, COUNT(*) as count 
+                FROM mots_de_passe 
+                WHERE id_utilisateur=%s 
+                GROUP BY niveau_securite
+            """, (user_id,))
+            
+            strength_map = {
+                'Très Fort': 'very_strong',
+                'Fort': 'strong',
+                'Moyen': 'medium',
+                'Faible': 'weak'
+            }
+            
+            stats.update({
+                'very_strong': 0,
+                'strong': 0,
+                'medium': 0,
+                'weak': 0
+            })
+            
+            for row in cur.fetchall():
+                niveau = row[0]
+                count = row[1]
+                if niveau in strength_map:
+                    stats[strength_map[niveau]] = count
+            
+            # Sites les plus utilisés
+            cur.execute("""
+                SELECT site_web, COUNT(*) as count 
+                FROM mots_de_passe 
+                WHERE id_utilisateur=%s AND site_web IS NOT NULL AND site_web != ''
+                GROUP BY site_web 
+                ORDER BY count DESC 
+                LIMIT 5
+            """, (user_id,))
+            
+            stats['top_sites'] = [(row[0], row[1]) for row in cur.fetchall()]
+            
+            # Dernier mot de passe ajouté
+            cur.execute("""
+                SELECT date_ajout 
+                FROM mots_de_passe 
+                WHERE id_utilisateur=%s 
+                ORDER BY date_ajout DESC 
+                LIMIT 1
+            """, (user_id,))
+            
+            row = cur.fetchone()
+            if row and row[0]:
+                stats['last_added'] = row[0].strftime("%d/%m/%Y %H:%M")
+            else:
+                stats['last_added'] = "Aucun"
+            
+            return stats
+            
+        except Exception as e:
+            print(f"Erreur lors de la récupération des stats : {e}")
+            return {
+                'created_date': 'N/A',
+                'total_passwords': 0,
+                'very_strong': 0,
+                'strong': 0,
+                'medium': 0,
+                'weak': 0,
+                'top_sites': [],
+                'last_added': 'Aucun'
+            }
+        finally:
+            if cur:
+                cur.close()
+            if conn and conn.is_connected():
+                conn.close()

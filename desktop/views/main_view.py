@@ -43,7 +43,7 @@ class MainView(ctk.CTkFrame):
         self.create_password_panel(right_panel)
     
     def create_header(self):
-        header = ctk.CTkFrame(self, fg_color=Theme.CARD_BG, height=70)
+        header = ctk.CTkFrame(self, fg_color="#2d2d2d", height=70)
         header.pack(fill="x")
         header.pack_propagate(False)
         
@@ -51,14 +51,14 @@ class MainView(ctk.CTkFrame):
         left_frame = ctk.CTkFrame(header, fg_color="transparent")
         left_frame.pack(side="left", padx=20, pady=10)
         
-        logo = ctk.CTkLabel(left_frame, text="🛡️", font=("Segoe UI", 32))
+        logo = ctk.CTkLabel(left_frame, text="🛡️", font=("Arial", 32))
         logo.pack(side="left", padx=(0, 10))
         
         title = ctk.CTkLabel(
             left_frame,
             text="SecuroPass",
-            font=("Segoe UI", 24, "bold"),
-            text_color=Theme.PRIMARY_COLOR
+            font=("Arial", 24, "bold"),
+            text_color="#1f6aa5"
         )
         title.pack(side="left")
         
@@ -66,29 +66,56 @@ class MainView(ctk.CTkFrame):
         right_frame = ctk.CTkFrame(header, fg_color="transparent")
         right_frame.pack(side="right", padx=20, pady=10)
         
-        user_label = ctk.CTkLabel(
+        # Bouton profil
+        self.profile_btn = ctk.CTkButton(
             right_frame,
             text=f"👤 {self.user_data['username']}",
-            font=("Segoe UI", 14),
-            text_color=Theme.TEXT_LIGHT
+            command=self.show_profile,
+            font=("Arial", 14, "bold"),
+            fg_color="#3d3d3d",
+            hover_color="#4d4d4d",
+            text_color="#e0e0e0",
+            width=180,
+            height=40,
+            corner_radius=8
         )
-        user_label.pack(side="left", padx=10)
+        self.profile_btn.pack(side="left", padx=10)
         
-        logout_btn = ModernButton(
+        # Bouton déconnexion
+        logout_btn = ctk.CTkButton(
             right_frame,
             text="Déconnexion",
             command=self.logout,
-            variant="danger",
-            width=120
+            font=("Arial", 14, "bold"),
+            fg_color="#dc3545",
+            hover_color="#bd2130",
+            text_color="white",
+            width=120,
+            height=40,
+            corner_radius=8
         )
         logout_btn.pack(side="left")
+    
+    def show_profile(self):
+        """Afficher le dialog de profil"""
+        try:
+            dialog = ProfileDialog(self, self.user_data)
+            self.wait_window(dialog)
+        except Exception as e:
+            print(f"Erreur lors de l'ouverture du profil : {e}")
+            messagebox.showerror("Erreur", "Impossible d'ouvrir le profil")
+    
+    def update_username_display(self, new_username):
+        """Mettre à jour l'affichage du nom d'utilisateur"""
+        self.profile_btn.configure(text=f"👤 {new_username}")
+        self.user_data['username'] = new_username
     
     def create_action_panel(self, parent):
         # Titre
         title = ctk.CTkLabel(
             parent,
             text="Actions",
-            font=("Segoe UI", 20, "bold"),
+            font=("Arial", 20, "bold"),
             text_color=Theme.TEXT_LIGHT
         )
         title.pack(pady=(0, 20))
@@ -110,7 +137,7 @@ class MainView(ctk.CTkFrame):
         search_label = ctk.CTkLabel(
             search_frame,
             text="🔍 Rechercher",
-            font=("Segoe UI", 14),
+            font=("Arial", 14),
             text_color=Theme.TEXT_LIGHT
         )
         search_label.pack(pady=(10, 5))
@@ -130,7 +157,7 @@ class MainView(ctk.CTkFrame):
         stats_title = ctk.CTkLabel(
             stats_card,
             text="📊 Statistiques",
-            font=("Segoe UI", 16, "bold"),
+            font=("Arial", 16, "bold"),
             text_color=Theme.TEXT_LIGHT
         )
         stats_title.pack(pady=(10, 5))
@@ -138,7 +165,7 @@ class MainView(ctk.CTkFrame):
         self.stats_label = ctk.CTkLabel(
             stats_card,
             text="",
-            font=("Segoe UI", 12),
+            font=("Arial", 12),
             text_color=Theme.TEXT_LIGHT,
             justify="left"
         )
@@ -162,7 +189,7 @@ class MainView(ctk.CTkFrame):
         title = ctk.CTkLabel(
             header_frame,
             text="Mes mots de passe",
-            font=("Segoe UI", 20, "bold"),
+            font=("Arial", 20, "bold"),
             text_color=Theme.TEXT_LIGHT
         )
         title.pack(side="left")
@@ -873,3 +900,319 @@ class GeneratorDialog(ctk.CTkToplevel):
             # Afficher un toast
             from views.components import Toast
             Toast(self.master, "Mot de passe copié!", "success")
+
+class ProfileDialog(ctk.CTkToplevel):
+    """Dialog pour gérer le profil utilisateur"""
+    def __init__(self, parent, user_data):
+        super().__init__(parent)
+        self.title("Mon profil")
+        self.user_data = user_data
+        self.parent = parent
+        
+        # Configuration
+        self.geometry("500x600")
+        self.resizable(False, False)
+        self.transient(parent)
+        
+        # Attendre que la fenêtre soit visible
+        self.wait_visibility()
+        self.grab_set()
+        
+        # Centrer la fenêtre
+        self.update_idletasks()
+        x = (self.winfo_screenwidth() - 500) // 2
+        y = (self.winfo_screenheight() - 600) // 2
+        self.geometry(f"500x600+{x}+{y}")
+        
+        # Configuration du style
+        self.configure(fg_color="#1a1a1a")
+        
+        self.setup_ui()
+    
+    def setup_ui(self):
+        # Main container
+        main_frame = ctk.CTkFrame(self, fg_color="#2d2d2d", corner_radius=10)
+        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Title avec icône
+        title_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        title_frame.pack(pady=(10, 20))
+        
+        title_label = ctk.CTkLabel(
+            title_frame,
+            text="👤 Mon profil",
+            font=("Arial", 24, "bold"),
+            text_color="#e0e0e0"
+        )
+        title_label.pack()
+        
+        # Info utilisateur actuel
+        info_frame = ctk.CTkFrame(main_frame, fg_color="#3d3d3d", corner_radius=8)
+        info_frame.pack(fill="x", padx=20, pady=(0, 20))
+        
+        ctk.CTkLabel(
+            info_frame,
+            text=f"Connecté en tant que : {self.user_data['username']}",
+            font=("Arial", 14),
+            text_color="#1f6aa5"
+        ).pack(pady=15)
+        
+        # Tabs pour séparer les sections
+        tab_view = ctk.CTkTabview(main_frame, fg_color="#2d2d2d", segmented_button_fg_color="#3d3d3d")
+        tab_view.pack(fill="both", expand=True, padx=20, pady=(0, 20))
+        
+        # Tab 1: Changer le nom d'utilisateur
+        tab_view.add("Nom d'utilisateur")
+        username_tab = tab_view.tab("Nom d'utilisateur")
+        
+        ctk.CTkLabel(
+            username_tab,
+            text="Nouveau nom d'utilisateur",
+            font=("Arial", 12),
+            text_color="#e0e0e0",
+            anchor="w"
+        ).pack(fill="x", pady=(20, 5))
+        
+        self.new_username_entry = ctk.CTkEntry(
+            username_tab,
+            placeholder_text="Entrez le nouveau nom d'utilisateur",
+            height=40,
+            fg_color="#3d3d3d",
+            border_color="#4d4d4d",
+            text_color="#e0e0e0"
+        )
+        self.new_username_entry.pack(fill="x", pady=(0, 10))
+        
+        ctk.CTkLabel(
+            username_tab,
+            text="Mot de passe actuel (pour confirmer)",
+            font=("Arial", 12),
+            text_color="#e0e0e0",
+            anchor="w"
+        ).pack(fill="x", pady=(10, 5))
+        
+        self.username_password_entry = ctk.CTkEntry(
+            username_tab,
+            placeholder_text="Entrez votre mot de passe actuel",
+            show="•",
+            height=40,
+            fg_color="#3d3d3d",
+            border_color="#4d4d4d",
+            text_color="#e0e0e0"
+        )
+        self.username_password_entry.pack(fill="x", pady=(0, 20))
+        
+        change_username_btn = ctk.CTkButton(
+            username_tab,
+            text="Changer le nom d'utilisateur",
+            command=self.change_username,
+            height=40,
+            fg_color="#1f6aa5",
+            hover_color="#155a8a"
+        )
+        change_username_btn.pack()
+        
+        # Tab 2: Changer le mot de passe
+        tab_view.add("Mot de passe")
+        password_tab = tab_view.tab("Mot de passe")
+        
+        ctk.CTkLabel(
+            password_tab,
+            text="Mot de passe actuel",
+            font=("Arial", 12),
+            text_color="#e0e0e0",
+            anchor="w"
+        ).pack(fill="x", pady=(20, 5))
+        
+        self.current_password_entry = ctk.CTkEntry(
+            password_tab,
+            placeholder_text="Entrez votre mot de passe actuel",
+            show="•",
+            height=40,
+            fg_color="#3d3d3d",
+            border_color="#4d4d4d",
+            text_color="#e0e0e0"
+        )
+        self.current_password_entry.pack(fill="x", pady=(0, 10))
+        
+        ctk.CTkLabel(
+            password_tab,
+            text="Nouveau mot de passe",
+            font=("Arial", 12),
+            text_color="#e0e0e0",
+            anchor="w"
+        ).pack(fill="x", pady=(10, 5))
+        
+        self.new_password_entry = ctk.CTkEntry(
+            password_tab,
+            placeholder_text="Entrez le nouveau mot de passe",
+            show="•",
+            height=40,
+            fg_color="#3d3d3d",
+            border_color="#4d4d4d",
+            text_color="#e0e0e0"
+        )
+        self.new_password_entry.pack(fill="x", pady=(0, 5))
+        
+        # Barre de force du mot de passe
+        from views.components import PasswordStrengthBar
+        self.password_strength_bar = PasswordStrengthBar(password_tab)
+        self.password_strength_bar.pack(fill="x", pady=(0, 10))
+        
+        self.new_password_entry.bind("<KeyRelease>", self.check_password_strength)
+        
+        ctk.CTkLabel(
+            password_tab,
+            text="Confirmer le nouveau mot de passe",
+            font=("Arial", 12),
+            text_color="#e0e0e0",
+            anchor="w"
+        ).pack(fill="x", pady=(10, 5))
+        
+        self.confirm_password_entry = ctk.CTkEntry(
+            password_tab,
+            placeholder_text="Confirmez le nouveau mot de passe",
+            show="•",
+            height=40,
+            fg_color="#3d3d3d",
+            border_color="#4d4d4d",
+            text_color="#e0e0e0"
+        )
+        self.confirm_password_entry.pack(fill="x", pady=(0, 20))
+        
+        change_password_btn = ctk.CTkButton(
+            password_tab,
+            text="Changer le mot de passe",
+            command=self.change_password,
+            height=40,
+            fg_color="#1f6aa5",
+            hover_color="#155a8a"
+        )
+        change_password_btn.pack()
+        
+        # Tab 3: Statistiques
+        tab_view.add("Statistiques")
+        stats_tab = tab_view.tab("Statistiques")
+        
+        self.stats_label = ctk.CTkLabel(
+            stats_tab,
+            text="Chargement des statistiques...",
+            font=("Arial", 14),
+            text_color="#e0e0e0",
+            justify="left"
+        )
+        self.stats_label.pack(pady=20)
+        
+        self.load_stats()
+        
+        # Bouton fermer
+        close_btn = ctk.CTkButton(
+            main_frame,
+            text="Fermer",
+            command=self.destroy,
+            width=150,
+            height=40,
+            fg_color="#3d3d3d",
+            hover_color="#4d4d4d"
+        )
+        close_btn.pack(pady=(0, 10))
+    
+    def check_password_strength(self, event=None):
+        password = self.new_password_entry.get()
+        self.password_strength_bar.update_strength(password)
+    
+    def change_username(self):
+        new_username = self.new_username_entry.get().strip()
+        password = self.username_password_entry.get()
+        
+        if not new_username or not password:
+            messagebox.showerror("Erreur", "Veuillez remplir tous les champs.")
+            return
+        
+        if len(new_username) < 3:
+            messagebox.showerror("Erreur", "Le nom d'utilisateur doit contenir au moins 3 caractères.")
+            return
+        
+        # Vérifier le mot de passe actuel et changer le nom d'utilisateur
+        from models.database import Database
+        success, message = Database.change_username(
+            self.user_data['user_id'],
+            self.user_data['username'],
+            password,
+            new_username
+        )
+        
+        if success:
+            messagebox.showinfo("Succès", message)
+            self.user_data['username'] = new_username
+            # Mettre à jour l'affichage dans la fenêtre principale
+            self.parent.update_username_display(new_username)
+            self.destroy()
+        else:
+            messagebox.showerror("Erreur", message)
+    
+    def change_password(self):
+        current_password = self.current_password_entry.get()
+        new_password = self.new_password_entry.get()
+        confirm_password = self.confirm_password_entry.get()
+        
+        if not current_password or not new_password or not confirm_password:
+            messagebox.showerror("Erreur", "Veuillez remplir tous les champs.")
+            return
+        
+        if len(new_password) < 8:
+            messagebox.showerror("Erreur", "Le nouveau mot de passe doit contenir au moins 8 caractères.")
+            return
+        
+        if new_password != confirm_password:
+            messagebox.showerror("Erreur", "Les nouveaux mots de passe ne correspondent pas.")
+            return
+        
+        # Changer le mot de passe
+        from models.database import Database
+        success, message = Database.change_password(
+            self.user_data['user_id'],
+            self.user_data['username'],
+            current_password,
+            new_password
+        )
+        
+        if success:
+            messagebox.showinfo("Succès", message)
+            self.destroy()
+        else:
+            messagebox.showerror("Erreur", message)
+    
+    def load_stats(self):
+        # Charger les statistiques
+        from models.database import Database
+        stats = Database.get_user_stats(self.user_data['user_id'])
+        
+        stats_text = f"""📊 Statistiques de votre compte
+
+👤 Nom d'utilisateur : {self.user_data['username']}
+📅 Compte créé le : {stats.get('created_date', 'N/A')}
+🔑 Total de mots de passe : {stats.get('total_passwords', 0)}
+
+📈 Répartition par force :
+  • Très fort : {stats.get('very_strong', 0)}
+  • Fort : {stats.get('strong', 0)}
+  • Moyen : {stats.get('medium', 0)}
+  • Faible : {stats.get('weak', 0)}
+
+🌐 Sites les plus utilisés :
+{self._format_top_sites(stats.get('top_sites', []))}
+
+⏰ Dernier mot de passe ajouté : {stats.get('last_added', 'N/A')}
+"""
+        
+        self.stats_label.configure(text=stats_text)
+    
+    def _format_top_sites(self, sites):
+        if not sites:
+            return "  Aucun site enregistré"
+        
+        formatted = []
+        for i, (site, count) in enumerate(sites[:5], 1):
+            formatted.append(f"  {i}. {site} ({count} mot(s) de passe)")
+        return "\n".join(formatted)
