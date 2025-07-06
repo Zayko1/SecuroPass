@@ -1,39 +1,68 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <title>Connexion - SecuroPass</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <!-- Bootstrap + ton CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <title>SecuroPass</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap + ton style -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+
+  <style>
+    body { min-width: 340px; background-color: #181a1b; }
+  </style>
 </head>
-<body>
-<div class="row justify-content-center mt-3">
+<body class="text-white">
+
+  <!-- SECTION LOGIN -->
+  <div id="login-section" class="row justify-content-center mt-4">
     <div class="col-12">
-        <div class="card">
-            <div class="card-body p-4">
-                <h2 class="text-center mb-3">
-                    <i class="fas fa-shield-alt"></i>
-                    Connexion à SecuroPass
-                </h2>
-                <form id="login-form">
-                    <div class="mb-3">
-                        <label for="username" class="form-label">Nom d'utilisateur</label>
-                        <input type="text" class="form-control" id="username" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Mot de passe</label>
-                        <input type="password" class="form-control" id="password" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Se connecter</button>
-                </form>
-                <p id="login-error" class="text-danger mt-2"></p>
+      <div class="card">
+        <div class="card-body p-4">
+          <h2 class="text-center mb-4">
+            <i class="fas fa-shield-alt"></i> SecuroPass
+          </h2>
+          <h4 class="text-center mb-4">Connexion</h4>
+          <form id="login-form">
+            <div class="mb-3">
+              <label for="username" class="form-label">Nom d'utilisateur</label>
+              <input type="text" class="form-control" id="username" required autofocus>
             </div>
+            <div class="mb-3">
+              <label for="password" class="form-label">Mot de passe</label>
+              <input type="password" class="form-control" id="password" required>
+            </div>
+            <button type="submit" class="btn btn-primary w-100 mb-3">
+              <i class="fas fa-sign-in-alt"></i> Se connecter
+            </button>
+          </form>
+          <div class="text-center">
+            <p class="mb-0">Pas encore de compte ?</p>
+            <a href="#" id="register-link">Créer un compte</a>
+          </div>
+          <div id="login-error" class="text-danger text-center mt-2"></div>
         </div>
+      </div>
     </div>
-</div>
-<script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
-<script src="popup.js"></script>
+  </div>
+
+  <!-- SECTION PASSWORDS (masquée au départ) -->
+  <div id="passwords-section" class="row justify-content-center mt-4" style="display:none;">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body p-4">
+          <h4 class="text-center mb-4">Mes mots de passe</h4>
+          <ul id="passwords-list" class="list-group mb-3"></ul>
+          <button id="logout-btn" class="btn btn-secondary w-100">
+            <i class="fas fa-sign-out-alt"></i> Déconnexion
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
 </body>
 </html>

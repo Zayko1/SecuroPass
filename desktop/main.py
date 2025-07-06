@@ -15,9 +15,17 @@ class SecuroPassApp:
         # Configuration du thème
         Theme.setup()
         
-        # Icône de l'application
+        # Icône de l'application (chemin absolu vers desktop/assets/logo.ico)
         if sys.platform.startswith('win'):
-            self.root.iconbitmap('assets/logo.ico')
+            # __file__ pointe vers .../SecuroPass/desktop/main.py
+            base_dir = os.path.dirname(os.path.abspath(__file__))
+            icon_path = os.path.join(base_dir, 'assets', 'logo.ico')
+            
+            if not os.path.exists(icon_path):
+                raise FileNotFoundError(
+                    f"Fichier d'icône introuvable : {icon_path}"
+                )
+            self.root.iconbitmap(icon_path)
         
         # Centrer la fenêtre
         self.center_window()
@@ -27,9 +35,9 @@ class SecuroPassApp:
         
     def center_window(self):
         self.root.update_idletasks()
-        width = self.root.winfo_width()
+        width  = self.root.winfo_width()
         height = self.root.winfo_height()
-        x = (self.root.winfo_screenwidth() // 2) - (width // 2)
+        x = (self.root.winfo_screenwidth()  // 2) - (width  // 2)
         y = (self.root.winfo_screenheight() // 2) - (height // 2)
         self.root.geometry(f'{width}x{height}+{x}+{y}')
     
