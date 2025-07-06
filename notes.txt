@@ -1,7 +1,0 @@
-pouvoir choisir la longueur du mdp 
-récupérer les mdp 
-chiffrer les mdp 
-supprimer les mdp
-créer les mdp
-Recherche 
-A2F
