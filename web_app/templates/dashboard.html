@@ -1,0 +1,40 @@
+<!-- ==================== templates/dashboard.html ==================== -->
+{% extends "base.html" %}
+
+{% block title %}Tableau de bord - SecuroPass{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="mb-4">Bienvenue, {{ username }} !</h1>
+        
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-key fa-4x mb-3 text-primary"></i>
+                        <h3>Gérer mes mots de passe</h3>
+                        <p>Consultez, ajoutez et modifiez vos mots de passe en toute sécurité.</p>
+                        <a href="{{ url_for('password.dashboard') }}" class="btn btn-primary">
+                            Accéder à mes mots de passe
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 mb-4">
+                <div class="card h-100">
+                    <div class="card-body text-center">
+                        <i class="fas fa-shield-alt fa-4x mb-3 text-success"></i>
+                        <h3>Sécurité maximale</h3>
+                        <p>Vos mots de passe sont chiffrés avec AES-256 et ne sont jamais stockés en clair.</p>
+                        <button class="btn btn-success" disabled>
+                            <i class="fas fa-check"></i> Compte sécurisé
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

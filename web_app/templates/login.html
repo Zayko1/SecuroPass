@@ -1,0 +1,40 @@
+<!-- ==================== templates/login.html ==================== -->
+{% extends "base.html" %}
+
+{% block title %}Connexion - SecuroPass{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card">
+            <div class="card-body p-5">
+                <h2 class="text-center mb-4">
+                    <i class="fas fa-shield-alt"></i> SecuroPass
+                </h2>
+                <h4 class="text-center mb-4">Connexion</h4>
+                
+                <form method="POST" action="{{ url_for('auth.login') }}">
+                    <div class="mb-3">
+                        <label for="username" class="form-label">Nom d'utilisateur</label>
+                        <input type="text" class="form-control" id="username" name="username" required autofocus>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Mot de passe</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100 mb-3">
+                        <i class="fas fa-sign-in-alt"></i> Se connecter
+                    </button>
+                </form>
+                
+                <div class="text-center">
+                    <p class="mb-0">Pas encore de compte ?</p>
+                    <a href="{{ url_for('auth.register') }}">Créer un compte</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
