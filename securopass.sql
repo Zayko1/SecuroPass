@@ -1,6 +1,4 @@
 -- This SQL script is used to create the necessary tables for the password manager application.
-
-DROP TABLE IF EXISTS `cles_maitres`;
 CREATE TABLE `cles_maitres` (
   `id` int NOT NULL AUTO_INCREMENT,
   `username` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
@@ -16,8 +14,6 @@ CREATE TABLE `cles_maitres` (
   UNIQUE KEY `username` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-
-DROP TABLE IF EXISTS `login_attempts`;
 CREATE TABLE `login_attempts` (
   `id` int NOT NULL AUTO_INCREMENT,
   `username` varchar(100) COLLATE utf8mb4_general_ci NOT NULL,
@@ -28,7 +24,6 @@ CREATE TABLE `login_attempts` (
   KEY `idx_username_time` (`username`,`attempt_time`)
 ) ENGINE=InnoDB AUTO_INCREMENT=15 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
-DROP TABLE IF EXISTS `logs`;
 CREATE TABLE `logs` (
   `id` int NOT NULL AUTO_INCREMENT,
   `id_utilisateur` int DEFAULT NULL,
